@@ -20,7 +20,7 @@ public class StreamsTest {
         v[1] = (float) 8.9;
 
         double daten = data.saveData(time,v);
-        Assert.assertArrayEquals(v, v, 0); //vor 0 steht "delta:"
+        Assert.assertArrayEquals(v, v, 0);
         Assert.assertEquals(time, time);
     }
 
