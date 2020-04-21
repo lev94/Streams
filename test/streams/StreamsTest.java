@@ -26,16 +26,30 @@ public class StreamsTest {
     }
 
     @Test
+    public void randTest1() throws Exception {
+        Streams data = new StreamsImpl();
+            long time = System.currentTimeMillis();
+            float[] v = new float[Short.MAX_VALUE];
+            for(int i = 0; i < v.length; i++) {
+                v[i] = (float) 3.5;
+        }
+
+            long daten = (long) data.saveData(time,v);
+            Assert.assertArrayEquals(v, v, 0);
+            Assert.assertEquals(time, time);
+    }
+
+    @Test
     public void schelchtTest1() throws Exception {
         Streams data = new StreamsImpl();
         try {
             long time = System.currentTimeMillis();
-            float[] v = new float[Integer.MAX_VALUE+1];
+            float[] v = new float[Short.MAX_VALUE+1];
             for(long i = 0; i <= v.length; i++) {
                 v[(int) i] = (float) 3.5;
             }
 
-            int daten = (int) data.saveData(time,v);
+            long daten = (long) data.saveData(time,v);
             Assert.fail();
         } catch (Exception e) {
 
