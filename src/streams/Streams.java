@@ -10,8 +10,7 @@ public interface Streams {
      * This method can be called by a sensor to save a data set.
      * @param time UNIX time when measurement took place
      * @param values sensor data
-     * @throws PersistenceException if something unexpected happened. Insufficient right, medium broken, offline..
-     * @return
+     * @throws Exception if something unexpected happened. Insufficient right, medium broken, offline..
      */
     double saveData(long time, float[] values) throws Exception;
 
