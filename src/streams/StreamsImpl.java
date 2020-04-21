@@ -18,6 +18,9 @@ public class StreamsImpl implements Streams {
         }
         //alle Messwerte eintragen
             try {
+                if(values.length > Short.MAX_VALUE){
+                    throw new Exception();
+                }
                 dos.writeLong(time);
                 for (int i = 0; i < values.length; i++) {
                     dos.writeFloat(values[i]);
