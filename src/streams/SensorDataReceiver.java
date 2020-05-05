@@ -1,0 +1,35 @@
+package sensorData;
+
+import streams.Streams;
+import transmission.DataConnection;
+
+import java.io.DataInputStream;
+
+public class SensorDataReceiver {
+    private final DataConnection connection;
+    private final Streams storage;
+
+    public SensorDataReceiver(DataConnection connection, Streams storage) {
+        this.connection = connection;
+        this.storage = storage;
+    }
+
+    private void readDataSet() throws Exception {
+        DataInputStream dis = this.connection.getDataInputStream();
+
+        // read from tcp
+        String name = dis.readUTF();
+        long time = dis.readLong();
+        int len = dis.readInt();
+        float[] values = new float[len];
+        for(int i = 0; i < len; i++){
+            values[i] = dis.readFloat();
+        }
+
+        // write inti machine
+        this.storage.saveData(time, values);
+    }
+
+    Streams getStorage() {return storage;}
+
+}
