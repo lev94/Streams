@@ -1,0 +1,192 @@
+package schiffeVersenken;
+
+import transmission.DataConnection;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Random;
+import java.util.Scanner;
+
+public class SchiffeVersenkenEngine implements SchiffeVersenkenReceive, SchiffeVersenkenSender {
+    public static final int UNDEFINE_DICE = -1;
+
+    private SchiffeVersenkenStatus status;
+    private int sentDice = UNDEFINE_DICE;
+
+    private final DataConnection connection;
+    private final DataInputStream dis;
+    private SchiffeVersenkenSender storage;
+    private int counter = 0; // zählt die Treffer
+
+
+    public SchiffeVersenkenEngine(DataConnection connection, DataInputStream dis) {
+        this.connection = connection;
+        this.dis = dis;
+        this.status = SchiffeVersenkenStatus.START;
+    }
+
+    @Override
+    public void reihenfolgeWuerfelnReceive(int zahl) throws IOException, StatusException {
+        if (this.status != SchiffeVersenkenStatus.START &&
+            this.status != SchiffeVersenkenStatus.DICE_SENT) {
+            throw new StatusException();
+        }
+
+        if (this.status == SchiffeVersenkenStatus.DICE_SENT) {
+            if (this.sentDice == zahl) {
+                status = SchiffeVersenkenStatus.START;
+            }
+            else if (this.sentDice < zahl) {
+                status = SchiffeVersenkenStatus.VERSENKEN_EMPFANGEN;
+            }
+            else
+                status = SchiffeVersenkenStatus.VERSENKEN_SENDEN;
+
+        }
+    }
+
+    @Override
+    public void koordinateReceive(int zeile, int spalte) throws StatusException {
+        if (this.status != SchiffeVersenkenStatus.VERSENKEN_EMPFANGEN) {
+            throw new StatusException();
+        }
+
+        // read from tcp
+        try {
+            zeile = dis.readInt();
+            spalte = dis.readInt();
+
+            // write into machine
+            this.storage.bestaetigenreceive(zeile);
+            this.storage.bestaetigenreceive(spalte);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void kapitulationReceive() throws StatusException {
+        if (this.status != SchiffeVersenkenStatus.VERSENKEN_EMPFANGEN) {
+            throw new StatusException();
+        }
+
+        this.status = SchiffeVersenkenStatus.WON;
+
+    }
+
+    @Override
+    public void bestaetigenSend(int zahl) throws StatusException, IOException {
+        if (this.status != SchiffeVersenkenStatus.BESTAETIGEN_SENDEN) {
+            throw new StatusException();
+        }
+
+        Scanner scan = new Scanner(System.in);
+        System.out.println("0 = Treffer, 1 = Verfehlt, 2 = Versenkt");
+        zahl = scan.nextInt();
+
+        // Koordinaten über TCP senden
+        DataOutputStream dos = this.connection.getDataOutputStream();
+        dos.writeInt(zahl);
+
+        if (zahl == 0) {
+            this.status = SchiffeVersenkenStatus.VERSENKEN_SENDEN;
+        }
+        else if (zahl == 1) {
+            counter++;
+            this.status = SchiffeVersenkenStatus.VERSENKEN_SENDEN;
+        }
+
+        // Kontrollieren ob alle Schiffe versenkt worden
+        else {
+            counter++;
+            if (counter == 30)
+                this.status = SchiffeVersenkenStatus.LOST;
+            else
+                this.status = SchiffeVersenkenStatus.VERSENKEN_SENDEN;
+
+        }
+
+    }
+
+
+    //////////////////////// Sender /////////////////////////
+
+    @Override
+    public void reihenfolgeWuerfelnSend(int zahl) throws StatusException {
+        if (this.status != SchiffeVersenkenStatus.START) {
+            throw new StatusException();
+        }
+
+        Random r = new Random();
+        this.sentDice = r.nextInt(6)+1;
+
+        this.status = SchiffeVersenkenStatus.DICE_SENT;
+    }
+
+    @Override
+    public void koordinateSend(int zeile, int spalte) throws StatusException, IOException {
+        if (this.status != SchiffeVersenkenStatus.VERSENKEN_SENDEN) {
+            throw new StatusException();
+        }
+        this.status = SchiffeVersenkenStatus.VERSENKEN_SENDEN;
+
+        Scanner scan = new Scanner(System.in);
+        System.out.println("Geben Sie die Zeile ein");
+        zeile = scan.nextInt();
+        System.out.println("Geben Sie die Spalte ein");
+        spalte = scan.nextInt();
+
+        // Koordinaten über TCP senden
+        DataOutputStream dos = this.connection.getDataOutputStream();
+        dos.writeInt(zeile);
+        dos.writeInt(spalte);
+
+        this.status = SchiffeVersenkenStatus.BESTAETIGEN_EMPFANGEN;
+    }
+
+    @Override
+    public void kapitulationSend() throws StatusException {
+        if (this.status != SchiffeVersenkenStatus.VERSENKEN_SENDEN) {
+            throw new StatusException();
+        }
+
+        this.status = SchiffeVersenkenStatus.LOST;
+    }
+
+    @Override
+    public void bestaetigenreceive(int zahl) throws StatusException {
+        if (this.status != SchiffeVersenkenStatus.BESTAETIGEN_EMPFANGEN) {
+            throw new StatusException();
+        }
+        this.status = SchiffeVersenkenStatus.BESTAETIGEN_EMPFANGEN;
+
+        // read from tcp
+        try {
+            zahl = dis.readInt();
+
+            // write into machine
+            this.storage.bestaetigenreceive(zahl);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (zahl == 0) {
+            this.status = SchiffeVersenkenStatus.VERSENKEN_EMPFANGEN;
+        }
+        else if (zahl == 1) {
+            counter++;
+            this.status = SchiffeVersenkenStatus.VERSENKEN_EMPFANGEN;
+        }
+
+        // Kontrollieren ob alle Schiffe versenkt worden
+        else {
+            counter++;
+            if (counter == 30)
+                this.status = SchiffeVersenkenStatus.WON;
+            else
+                this.status = SchiffeVersenkenStatus.VERSENKEN_EMPFANGEN;
+
+        }
+    }
+}
