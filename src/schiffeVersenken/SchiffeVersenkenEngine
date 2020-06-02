@@ -19,6 +19,15 @@ public class SchiffeVersenkenEngine implements SchiffeVersenkenReceive, SchiffeV
     private SchiffeVersenkenSender storage;
     private int counter = 0; // zählt die Treffer
 
+    public static final int DIM = 10;
+
+    SVBoardField[][] board = new SVBoardField[DIM][DIM];
+    SVBoardField[][] otherBoard = new SVBoardField[DIM][DIM];
+
+    int x, y;
+    int zeile, spalte;
+    private int receivedRandom;
+
 
     public SchiffeVersenkenEngine(DataConnection connection, DataInputStream dis) {
         this.connection = connection;
@@ -33,36 +42,28 @@ public class SchiffeVersenkenEngine implements SchiffeVersenkenReceive, SchiffeV
             throw new StatusException();
         }
 
-        if (this.status == SchiffeVersenkenStatus.DICE_SENT) {
-            if (this.sentDice == zahl) {
-                status = SchiffeVersenkenStatus.START;
-            }
-            else if (this.sentDice < zahl) {
-                status = SchiffeVersenkenStatus.VERSENKEN_EMPFANGEN;
-            }
-            else
-                status = SchiffeVersenkenStatus.VERSENKEN_SENDEN;
+        this.receivedRandom = zahl;
 
+        if (this.status == SchiffeVersenkenStatus.DICE_SENT) {
+            this.decideWhoStarts();
+        }else {
+            this.status = SchiffeVersenkenStatus.DICE_RECEIVED;
         }
+
     }
 
     @Override
-    public void koordinateReceive(int zeile, int spalte) throws StatusException {
+    public void koordinateReceive(int zeile, int spalte) throws StatusException, SVExeption {
         if (this.status != SchiffeVersenkenStatus.VERSENKEN_EMPFANGEN) {
             throw new StatusException();
         }
+        this.status = SchiffeVersenkenStatus.VERSENKEN_EMPFANGEN;
 
-        // read from tcp
-        try {
-            zeile = dis.readInt();
-            spalte = dis.readInt();
+        this.checkValidSet(zeile, spalte);
 
-            // write into machine
-            this.storage.bestaetigenreceive(zeile);
-            this.storage.bestaetigenreceive(spalte);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        this.board[zeile][spalte] = SVBoardField.GESCHOSSEN;
+
+        this.status = SchiffeVersenkenStatus.BESTAETIGEN_SENDEN;
     }
 
     @Override
@@ -93,18 +94,19 @@ public class SchiffeVersenkenEngine implements SchiffeVersenkenReceive, SchiffeV
             this.status = SchiffeVersenkenStatus.VERSENKEN_SENDEN;
         }
         else if (zahl == 1) {
+            this.board[zeile][spalte] = SVBoardField.TREFFER;
             counter++;
             this.status = SchiffeVersenkenStatus.VERSENKEN_SENDEN;
         }
 
         // Kontrollieren ob alle Schiffe versenkt worden
-        else {
+        else if (zahl == 2){
+            this.board[zeile][spalte] = SVBoardField.TREFFER;
             counter++;
             if (counter == 30)
                 this.status = SchiffeVersenkenStatus.LOST;
             else
                 this.status = SchiffeVersenkenStatus.VERSENKEN_SENDEN;
-
         }
 
     }
@@ -113,36 +115,54 @@ public class SchiffeVersenkenEngine implements SchiffeVersenkenReceive, SchiffeV
     //////////////////////// Sender /////////////////////////
 
     @Override
-    public void reihenfolgeWuerfelnSend(int zahl) throws StatusException {
-        if (this.status != SchiffeVersenkenStatus.START) {
+    public void doDice() throws StatusException {
+        if (this.status != SchiffeVersenkenStatus.START
+            && this.status != SchiffeVersenkenStatus.DICE_RECEIVED) {
             throw new StatusException();
         }
 
         Random r = new Random();
         this.sentDice = r.nextInt(6)+1;
 
-        this.status = SchiffeVersenkenStatus.DICE_SENT;
+        if (this.status == SchiffeVersenkenStatus.DICE_RECEIVED) {
+            this.decideWhoStarts();
+        } else {
+            this.status = SchiffeVersenkenStatus.DICE_SENT;
+        }
+
+    }
+
+    private void decideWhoStarts() {
+        if (this.sentDice == this.receivedRandom) {
+            status = SchiffeVersenkenStatus.START;
+        }
+        else if (this.sentDice < this.receivedRandom) {
+            status = SchiffeVersenkenStatus.VERSENKEN_EMPFANGEN;
+        }
+        else
+            status = SchiffeVersenkenStatus.VERSENKEN_SENDEN;
     }
 
     @Override
-    public void koordinateSend(int zeile, int spalte) throws StatusException, IOException {
+    public void koordinateSend(int zeile, int spalte) throws StatusException, IOException, SVExeption {
         if (this.status != SchiffeVersenkenStatus.VERSENKEN_SENDEN) {
             throw new StatusException();
         }
         this.status = SchiffeVersenkenStatus.VERSENKEN_SENDEN;
 
-        Scanner scan = new Scanner(System.in);
-        System.out.println("Geben Sie die Zeile ein");
-        zeile = scan.nextInt();
-        System.out.println("Geben Sie die Spalte ein");
-        spalte = scan.nextInt();
+        this.checkValidSet(x, y);
 
-        // Koordinaten über TCP senden
-        DataOutputStream dos = this.connection.getDataOutputStream();
-        dos.writeInt(zeile);
-        dos.writeInt(spalte);
 
-        this.status = SchiffeVersenkenStatus.BESTAETIGEN_EMPFANGEN;
+    }
+
+    private void checkValidSet(int x, int y) throws SVExeption {
+        if (x >= DIM || y >= DIM || x < 0 || y < 0) {
+            throw new SVExeption("ungültige Eingabe");
+        }
+
+        if (this.board[x][y] != SVBoardField.LEER) {
+            throw new SVExeption("Koordinaten bereits gewählt");
+        }
     }
 
     @Override
@@ -175,12 +195,14 @@ public class SchiffeVersenkenEngine implements SchiffeVersenkenReceive, SchiffeV
             this.status = SchiffeVersenkenStatus.VERSENKEN_EMPFANGEN;
         }
         else if (zahl == 1) {
+            this.board[zeile][spalte] = SVBoardField.TREFFER;
             counter++;
             this.status = SchiffeVersenkenStatus.VERSENKEN_EMPFANGEN;
         }
 
         // Kontrollieren ob alle Schiffe versenkt worden
-        else {
+        else if (zahl == 2){
+            this.board[zeile][spalte] = SVBoardField.TREFFER;
             counter++;
             if (counter == 30)
                 this.status = SchiffeVersenkenStatus.WON;
