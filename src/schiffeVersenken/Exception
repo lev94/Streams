@@ -1,0 +1,7 @@
+package schiffeVersenken;
+
+public class SVExeption extends Exception {
+    SVExeption(String message){
+        super(message);
+    }
+}
