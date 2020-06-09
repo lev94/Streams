@@ -1,0 +1,72 @@
+package schiffeVersenken.protocolBinding;
+
+import schiffeVersenken.SVExeption;
+import schiffeVersenken.SchiffeVersenkenReceive;
+import schiffeVersenken.StatusException;
+
+import java.io.*;
+
+public class StreamBindingReceive extends Thread {
+
+    private final DataInputStream dis;
+    private final SchiffeVersenkenReceive receiver;
+
+    public StreamBindingReceive(InputStream is, SchiffeVersenkenReceive receiver) {
+        this.dis = new DataInputStream(is);
+        this.receiver = receiver;
+    }
+
+
+    public void readDice() throws Exception {
+        int random = this.dis.readInt();
+
+        this.receiver.reihenfolgeWuerfelnReceive(random);
+    }
+
+    public void readSet() throws StatusException, SVExeption, IOException {
+        int zeile = this.dis.readInt();
+        int spalte = this.dis.readInt();
+
+        this.receiver.koordinateReceive(zeile, spalte);
+
+    }
+
+    public void kapitulationReceive() throws StatusException {
+
+    }
+
+    public void readBestaetigung() throws StatusException, IOException {
+        int bestaetigung = this.dis.readInt();
+
+        this.receiver.bestaetigenSend(bestaetigung);
+
+    }
+
+    public void run() {
+        boolean again = true;
+        while (again) {
+            try {
+                int cmd = this.dis.readInt();
+
+                switch (cmd) {
+                    case StreamBinding.DICE: this.readDice(); break;
+                    case StreamBinding.SET: this.readSet(); break;
+                    case StreamBinding.BESTAETIGEN: this.readBestaetigung(); break;
+                    default: again = false; System.err.println("unknown command code: " + cmd);
+                }
+
+            } catch (IOException e) {
+                System.err.println("IOException " + e.getLocalizedMessage());
+                again = false;            } catch (SVExeption svExeption) {
+                svExeption.printStackTrace();
+            } catch (StatusException e) {
+                System.err.println("Status Exception " + e.getLocalizedMessage());
+                again = false;
+            } catch (Exception e) {
+                System.err.println("Exception " + e.getLocalizedMessage());
+                again = false;
+            }
+        }
+    }
+
+}
