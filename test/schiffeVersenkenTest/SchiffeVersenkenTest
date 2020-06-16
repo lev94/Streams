@@ -1,0 +1,61 @@
+package schiffeVersenken;
+
+import machine.SVUsage;
+import machine.SchiffeVersenkenEngine;
+import machine.SchiffeVersenkenSender;
+import machine.StatusException;
+import org.junit.Assert;
+import org.junit.Test;
+import schiffeVersenken.Feld.SVException;
+
+import java.io.IOException;
+
+public class SchiffeVersenkenTest {
+
+    @Test
+    public void usageTest1() throws Exception {
+        ShortCut sender1 = new ShortCut();
+        SchiffeVersenkenEngine game1 = new SchiffeVersenkenEngine(sender1);
+
+        ShortCut sender2 = new ShortCut();
+        SchiffeVersenkenEngine game2 = new SchiffeVersenkenEngine(sender2);
+
+        //connect both games
+        sender1.setReceiver(game2);
+        sender2.setReceiver(game1);
+
+        //test methods
+        game1.doDice();
+        game2.doDice();
+
+        SVUsage activeGame = game1.isActive() ? game1 : game2;
+
+        activeGame.set(0,0);
+        Assert.assertFalse(game1.isActive());
+
+
+    }
+
+    @Test
+    public void usageTest2() throws Exception, SVException {
+        ShortCut sender1 = new ShortCut();
+        SchiffeVersenkenEngine game1 = new SchiffeVersenkenEngine(sender1);
+
+        ShortCut sender2 = new ShortCut();
+        SchiffeVersenkenEngine game2 = new SchiffeVersenkenEngine(sender2);
+
+        //connect both games
+        sender1.setReceiver(game2);
+        sender2.setReceiver(game1);
+
+        //test methods
+        int zeile = 0, spalte = 0;
+
+        game1.koordinateSend(5,5);
+        game2.koordinateReceive(zeile,spalte);
+
+        Assert.assertEquals(zeile, 5);
+        Assert.assertEquals(spalte, 5);
+
+    }
+}
