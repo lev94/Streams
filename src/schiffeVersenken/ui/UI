@@ -1,0 +1,53 @@
+package ui;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+public class UI {
+    public static void main(String[] args) {
+
+
+
+        BufferedReader userInput = new BufferedReader(new InputStreamReader(System.in));
+
+        boolean again = true;
+        while (again) {
+
+            try {
+                // read user input
+                String cmdLineString = userInput.readLine();
+
+                // finish that loop if less than nothing came in
+                if (cmdLineString == null) break;
+
+                // trim whitespaces on both sides
+                cmdLineString = cmdLineString.trim();
+
+                // extract command
+                int spaceIndex = cmdLineString.indexOf(' ');
+                spaceIndex = spaceIndex != -1 ? spaceIndex : cmdLineString.length();
+
+                // got command string
+                String zeile = cmdLineString.substring(0, spaceIndex);
+
+                int num = Integer.parseInt(zeile);
+
+                // extract parameters string - can be empty
+                String spalte = cmdLineString.substring(spaceIndex);
+                spalte = spalte.trim();
+
+                // TODO
+
+
+
+
+
+            } catch (IOException ex) {
+                System.err.println(ex.getLocalizedMessage());
+            }
+        }
+    }
+
+}
+
