@@ -1,0 +1,33 @@
+package chess.ui;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+public class Console {
+
+    public static int readIntegerFromStdin(String text, String errorMessage){
+        System.out.print(text);
+        do {
+            try {
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+                return Integer.parseInt(bufferedReader.readLine());
+            } catch (Exception e) {
+                System.out.println(e.getMessage() + " " + errorMessage);
+            }
+        } while (true);
+    }
+
+
+    public String readStringFromStdin (String text){
+        System.out.print(text);
+        do {
+            try {
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+                return bufferedReader.readLine();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } while (true);
+    }
+}
