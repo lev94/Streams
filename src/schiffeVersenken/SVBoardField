@@ -1,5 +1,0 @@
-package schiffeVersenken;
-
-public enum SVBoardField {
-    LEER, GESCHOSSEN, TREFFER
-}
