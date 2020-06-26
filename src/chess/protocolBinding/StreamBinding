@@ -1,0 +1,12 @@
+package chess.protocolBinding;
+
+public class StreamBinding {
+    public static final int DICE = 0;
+    public static final int MOVE = 1;
+    public static final int MOVE_PAWN_ROLE = 2;
+    public static final int ROCHADE = 3;
+    public static final int END_GAME = 4;
+    public static final int PROPOSAL_END = 5;
+    public static final int CHOOSE_COLOR = 6;
+    public static final int PROPOSAL_ANSWER = 7;
+}
