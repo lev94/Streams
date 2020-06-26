@@ -1,0 +1,57 @@
+package chess;
+
+import org.junit.Assert;
+import org.junit.Test;
+import java.io.IOException;
+
+public class ChessTest {
+
+    ChessBoard chessBoard = new ChessBoard();
+
+    @Test
+    public void usageTest1() throws IOException, StatusException, ChessException {
+        ShortCut sender1 = new ShortCut();
+        ChessEngine game1 = new ChessEngine(sender1);
+
+        ShortCut sender2 = new ShortCut();
+        ChessEngine game2 = new ChessEngine(sender2);
+
+        // connect both games
+        sender1.setReceiver(game2);
+        sender2.setReceiver(game1);
+
+        // test methods
+        game1.doDice();
+        game2.doDice();
+
+        ChessUsage activeGame = game1.isActive() ? game1 : game2;
+
+
+        activeGame.set(8, 16);
+        Assert.assertFalse(game1.isActive());
+    }
+
+    @Test
+    public void usageTest2() throws IOException, StatusException, ChessException {
+        ShortCut sender1 = new ShortCut();
+        ChessEngine game1 = new ChessEngine(sender1);
+
+        ShortCut sender2 = new ShortCut();
+        ChessEngine game2 = new ChessEngine(sender2);
+
+        // connect both games
+        sender1.setReceiver(game2);
+        sender2.setReceiver(game1);
+
+        // test methods
+        game1.doDice();
+        game2.doDice();
+
+        int from = 15;
+        int to = 23;
+        game1.set(from, to);
+
+        Assert.assertEquals(game1.board.boardField[from], BoardField.EMPTY);
+        Assert.assertEquals(game1.board.boardField[to], BoardField.PAWN_WHITE);
+    }
+}
