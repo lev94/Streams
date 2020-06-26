@@ -1,0 +1,148 @@
+package chess.ui;
+
+import chess.ChessEngine;
+import chess.ChessException;
+import chess.ChessStatus;
+import chess.StatusException;
+import chess.protocolBinding.StreamBindingReceiver;
+import transmission.DataConnection;
+import transmission.DataConnector;
+
+import java.io.IOException;
+
+public class UI {
+    public static void main(String[] args) throws IOException, StatusException {
+        DataConnector dataConnector= null;
+        StreamBindingReceiver receiver = null;
+        ChessEngine engine = null;
+        Console console = null;
+
+
+        System.out.println("--- Schachspiel ---");
+
+        boolean again = true;
+        do {
+            try {
+                dataConnector = connection();
+                again = false;
+            } catch (Exception e) {
+                System.err.println("No connection could be established. Try it again.");
+            }
+        } while(again);
+
+        engine.doDice();
+
+        if (engine.getStatus() == ChessStatus.CHOOSE_COLOR) {
+            boolean white = true;
+            int input = console.readIntegerFromStdin("\nplease select a colour? \n \n [1] white \n [2] black \n", "enter only 1 or 2");
+
+            if (input == 2)
+                white = false;
+
+            engine.chooseColor(white);
+        }
+
+        else if (engine.getStatus() == ChessStatus.WAIT_FOR_COLOR) {
+            System.out.println("the opponent chooses the colour. please wait a little.");
+            while (engine.getStatus() == ChessStatus.WAIT_FOR_COLOR) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        if (engine.getStatus() == ChessStatus.WHITE)
+            System.out.println("you make the first move");
+        else
+            System.out.println("your opponent makes the first move");
+
+
+        while(engine.getStatus() != ChessStatus.END) {
+            System.out.print(" ");
+            if (engine.getStatus() == ChessStatus.PASSIVE) {
+                engine.printBoard();
+                System.out.println("your opponent makes his move...");
+                while (engine.getStatus() == ChessStatus.PASSIVE) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            else if (engine.getStatus() == ChessStatus.ACTIVE) {
+                engine.printBoard();
+                System.out.println("it is your turn");
+
+                while (engine.getStatus() == ChessStatus.ACTIVE) {
+                    int from = 0;
+                    int to = 0;
+                    do {
+                        from = console.readIntegerFromStdin("from: ", "wrong input. Try again.") - 1;
+                        to = console.readIntegerFromStdin("to: ", "wrong input. Try again.") - 1;
+                    } while (to < 0 || to > 63 || from < 0 || from > 63);
+
+                    try {
+                        engine.set(from, to);
+                    } catch (ChessException e) {
+                        e.printStackTrace();
+                    }
+                }
+                System.out.println();
+            }
+
+            if (engine.checkEnd())
+                System.out.println("Congratulations! You won the game!");
+            else
+                System.out.println("You lost the game");
+
+
+        }
+
+
+    }
+
+
+
+
+    private static DataConnector connection() throws IOException, InterruptedException {
+        int input;
+        boolean again = true;
+        int port;
+        String address;
+        DataConnection dataConnection = null;
+
+        System.out.printf("Do you want to host a game or join an open game? \n \n [1] Hosting \n [2] Joining \n");
+
+        do {
+            Console console = null;
+            input = console.readIntegerFromStdin("\nPlease enter selection: ", "unknown code");
+
+            switch(input) {
+                case 1:
+                    //Server
+                    port = console.readIntegerFromStdin("Please enter port number: ", "unknown code");
+                    System.out.println("Waiting for entry by opponents");
+                    dataConnection = new DataConnector(port);
+                    System.out.println("Opponents found");
+                    again = false;
+                    break;
+                case 2:
+                    //Client
+                    address = console.readStringFromStdin("Please enter the IP address of the opponent: ");
+                    port = console.readIntegerFromStdin("Bitte Portnummer eingeben: ", "unknown code");
+                    dataConnection = new DataConnector(address, port);
+                    again = false;
+                    break;
+                default:
+                    System.out.println("unknown code.");
+                    break;
+            }
+        } while(again);
+
+
+        return (DataConnector) dataConnection;
+    }
+}
