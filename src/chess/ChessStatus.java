@@ -1,0 +1,7 @@
+package chess;
+
+public enum ChessStatus {
+
+    START, LOST, WON, ACTIVE, PASSIVE, ANSWERING, WAIT, WAIT_FOR_COLOR, CHOOSE_COLOR, SENT_DICE, RECEICE_DICE, WHITE, BLACK, END;
+
+}
