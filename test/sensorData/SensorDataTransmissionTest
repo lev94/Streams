@@ -6,63 +6,29 @@ import streams.Streams;
 import transmission.DataConnection;
 import transmission.DataConnector;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 
 public class SensorDataTransmissionTest {
+
     private static final int PORTNUMBER = 9876;
+    private static final int TEST_INT = 42;
 
     @Test
-    public void gutTransmissionTest() throws IOException, InterruptedException {
-        // create example data set
-        String sensorName = "MySensor";
-        long timeStamp = System.currentTimeMillis();
-        float[] values = new float[3];
-        values[0] = (float) 0.7;
-        values[1] = (float) 1.7;
-        values[2] = (float) 2.5;
+    public void gutConnectionTest1() throws IOException, InterruptedException {
+        // open server side
+        DataConnection serverSide = new DataConnector(PORTNUMBER);
 
-        ///////// receiver side /////////////
-        // create storage
-        Streams dataStorage = null;
+        // open client side
+        DataConnection clientSide = new DataConnector("localhost", PORTNUMBER);
 
-        // create connections
+        DataOutputStream dataOutputStream = clientSide.getDataOutputStream();
+        dataOutputStream.writeInt(TEST_INT);
 
-        Object senderConnection = null;
-        Thread senderThread = new Thread((Runnable) senderConnection);
-        senderThread.start();
-        Thread.sleep(1);
+        DataInputStream dataInputStream = serverSide.getDataInputStream();
+        int readValue = dataInputStream.readInt();
 
-        DataConnection receiverConnection = new DataConnector(PORTNUMBER);
-
-        // create receiver
-        SensorDataReceiver sensorDataReceiver = new SensorDataReceiver(receiverConnection, dataStorage);
-
-        ////////////////// sender side /////////////////
-        // create connections
-        senderConnection = new DataConnector("localhost", PORTNUMBER);
-
-        //Thread senderThread = new Thread((Runnable) senderConnection);
-
-
-        // create sender
-        SensorDataSender sensorDataSender = new SensorDataSender((DataConnection) senderConnection);
-
-        //////////////// execute communication and test ///////////////
-
-        // send data with TCP
-        sensorDataSender.sendData(sensorName, timeStamp, values);
-
-        // test if stored
-        Streams dataStorageReceived = sensorDataReceiver.getStorage();
-
-        // just dummy values
-        String sensorNameReceived = "dummy";
-        long timeStampReceived = 0;
-        float[] valuesReceived = new float[3];
-
-        // test
-        Assert.assertEquals(sensorName, sensorNameReceived);
-        Assert.assertEquals(timeStamp, timeStampReceived);
-
+        Assert.assertEquals(TEST_INT, readValue);
     }
 }
